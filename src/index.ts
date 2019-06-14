@@ -1,32 +1,55 @@
 import "reflect-metadata";
-import { Resolver, Query, buildSchema, Arg } from "type-graphql";
+import Express from "express";
+import { createConnection } from "typeorm";
+import { buildSchema } from "type-graphql";
 import { ApolloServer } from "apollo-server-express";
-import * as Express from "express";
+import session from "express-session";
+import connectRedis from "connect-redis";
+import cors from "cors";
+import ms from "ms";
 
-@Resolver()
-class HelloResolver {
-  @Query(() => String)
-  async helloWorld() {
-    return "hello world";
-  }
-
-  @Query(() => String)
-  async myNameIs(@Arg("name") name: string, @Arg("lastname") lastname: string) {
-    return {
-      name,
-      lastname
-    };
-  }
-}
+import { RegisterResolver } from "./modules/user/Register";
+import { redis } from "./redis";
+import { MeResolver } from "./modules/user/Me";
+import { LoginResolver } from "./modules/user/Login";
 
 async function main() {
+  await createConnection();
+
   const schema = await buildSchema({
-    resolvers: [HelloResolver]
+    resolvers: [RegisterResolver, MeResolver, LoginResolver],
+    authChecker: ({ context: { req } }) => {
+      // You use it with `@Authorized`
+      // https://typegraphql.ml/docs/authorization.html
+      return !!req.session.userId;
+    }
   });
 
-  const apolloServer = new ApolloServer({ schema });
+  const apolloServer = new ApolloServer({
+    schema,
+    context: ({ req }: any) => ({ req })
+  });
 
   const app = Express();
+
+  const RedisStore = connectRedis(session);
+
+  app.use(cors({ credentials: true, origin: "http://localhost:3000" }));
+
+  app.use(
+    session({
+      store: new RedisStore({ client: redis as any }),
+      name: "qid",
+      secret: "dsdasda",
+      resave: false,
+      saveUninitialized: false,
+      cookie: {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        maxAge: ms("7 days")
+      }
+    })
+  );
 
   apolloServer.applyMiddleware({ app });
 
