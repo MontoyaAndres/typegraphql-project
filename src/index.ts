@@ -8,16 +8,13 @@ import connectRedis from "connect-redis";
 import cors from "cors";
 import ms from "ms";
 
-import { RegisterResolver } from "./modules/user/Register";
 import { redis } from "./redis";
-import { MeResolver } from "./modules/user/Me";
-import { LoginResolver } from "./modules/user/Login";
 
 async function main() {
   await createConnection();
 
   const schema = await buildSchema({
-    resolvers: [RegisterResolver, MeResolver, LoginResolver],
+    resolvers: [__dirname + "/modules/**/*.ts"],
     authChecker: ({ context: { req } }) => {
       // You use it with `@Authorized`
       // https://typegraphql.ml/docs/authorization.html
@@ -27,7 +24,7 @@ async function main() {
 
   const apolloServer = new ApolloServer({
     schema,
-    context: ({ req }: any) => ({ req })
+    context: ({ req, res }: any) => ({ req, res })
   });
 
   const app = Express();
