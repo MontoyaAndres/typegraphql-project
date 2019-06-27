@@ -1,4 +1,4 @@
-https://www.youtube.com/watch?v=fYBlg9oOvQM&list=PLN3n1USn4xlma1bBu3Tloe4NyYn9Ko8Gs&index=11
+This is a little example of how to use TypeGraphql!
 
 # Tips
 
