@@ -1,7 +1,6 @@
 import "reflect-metadata";
 import Express from "express";
 import { createConnection } from "typeorm";
-import { buildSchema } from "type-graphql";
 import { ApolloServer } from "apollo-server-express";
 import session from "express-session";
 import connectRedis from "connect-redis";
@@ -9,18 +8,12 @@ import cors from "cors";
 import ms from "ms";
 
 import { redis } from "./redis";
+import { createSchema } from "./lib/createSchema";
 
 async function main() {
   await createConnection();
 
-  const schema = await buildSchema({
-    resolvers: [__dirname + "/modules/**/*.ts"],
-    authChecker: ({ context: { req } }) => {
-      // You use it with `@Authorized`
-      // https://typegraphql.ml/docs/authorization.html
-      return !!req.session.userId;
-    }
-  });
+  const schema = await createSchema();
 
   const apolloServer = new ApolloServer({
     schema,
